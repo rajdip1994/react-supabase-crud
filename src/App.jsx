@@ -34,7 +34,7 @@ function App() {
         Add User
       </Link>
 
-      <table className="table table-bordered">
+      <table className="table table-striped table-bordered">
         <thead>
           <tr>
             <th>Name</th>
