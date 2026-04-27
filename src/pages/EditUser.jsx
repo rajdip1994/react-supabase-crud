@@ -6,7 +6,6 @@ import { Helmet } from 'react-helmet-async';
 function EditUser() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(false);
 
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -31,14 +30,10 @@ function EditUser() {
 
     // Update
     const updateUser = async () => {
-        setLoading(true);
-
-        const { error } = await supabase
+        await supabase
             .from('users')
             .update({ name, email })
             .eq('id', id);
-
-        setLoading(false);
 
         navigate('/');
     };
@@ -75,15 +70,9 @@ function EditUser() {
                 </div>
             </div>
 
-            <button className="btn btn-success" onClick={updateUser} disabled={loading}>
-                {loading ? (
-                    <>
-                        <span className="spinner-border spinner-border-sm me-2"></span>
-                        Saving...
-                    </>
-                ) : (
-                    "Update"
-                )}
+
+            <button className="btn btn-primary" onClick={updateUser}>
+                Update
             </button>
             <button style={{ marginLeft: '10px' }} className="btn btn-secondary" onClick={() => navigate('/')}>
                 Back

@@ -7,7 +7,6 @@ function AddUser() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [errors, setErrors] = useState({});
-    const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
 
@@ -33,13 +32,9 @@ function AddUser() {
     const addUser = async () => {
         if (!validate()) return; // stop if invalid
 
-        setLoading(true);
-
         const { error } = await supabase
             .from('users')
             .insert([{ name, email }]);
-
-        setLoading(false);
 
         if (error) {
             if (error.message.includes('duplicate')) {
@@ -86,15 +81,8 @@ function AddUser() {
                 </div>
             </div>
 
-            <button className="btn btn-success" onClick={addUser} disabled={loading}>
-                {loading ? (
-                    <>
-                        <span className="spinner-border spinner-border-sm me-2"></span>
-                        Saving...
-                    </>
-                ) : (
-                    "Save"
-                )}
+            <button className="btn btn-success" onClick={addUser}>
+                Save
             </button>
             <button style={{ marginLeft: '10px' }} className="btn btn-secondary" onClick={() => navigate('/')}>
                 Back
