@@ -24,11 +24,11 @@ function App() {
   return (
     <div className="container mt-5">
       <Helmet>
-        <title>All Users List</title>
+        <title>Users List</title>
         <meta name="description" content="User listing page" />
       </Helmet>
 
-      <h2>All Users List</h2>
+      <h2>Users List</h2>
 
       <Link to="/add" className="btn btn-primary mb-3">
         Add User
