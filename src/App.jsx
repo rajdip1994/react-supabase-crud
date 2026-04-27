@@ -3,6 +3,8 @@ import { supabase } from './supabaseClient';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 
+const [loadingId, setLoadingId] = useState(null);
+
 function App() {
   const [users, setUsers] = useState([]);
 
@@ -16,7 +18,11 @@ function App() {
   }, []);
 
   const deleteUser = async (id) => {
+    setLoadingId(id);
+
     await supabase.from('users').delete().eq('id', id);
+
+    setLoadingId(null);
     fetchUsers();
   };
 
@@ -57,8 +63,9 @@ function App() {
                 <button
                   className="btn btn-danger btn-sm"
                   onClick={() => deleteUser(u.id)}
+                  disabled={loadingId === u.id}
                 >
-                  Delete
+                  {loadingId === u.id ? "Deleting..." : "Delete"}
                 </button>
               </td>
             </tr>
