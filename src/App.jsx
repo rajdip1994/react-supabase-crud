@@ -27,6 +27,10 @@ function App() {
   }, []);
 
   const deleteUser = async (id) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this user?");
+
+    if (!confirmDelete) return;
+
     await supabase.from('users').delete().eq('id', id);
     fetchUsers();
   };
