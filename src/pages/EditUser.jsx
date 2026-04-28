@@ -7,33 +7,102 @@ function EditUser() {
     const { id } = useParams();
     const navigate = useNavigate();
 
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
+    const [form, setForm] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        address: '',
+        city: '',
+        state: '',
+        country: ''
+    });
 
-    // Fetch existing data
+    const [errors, setErrors] = useState({});
+    const [loading, setLoading] = useState(false);
+
+    const handleChange = (e) => {
+        setForm({ ...form, [e.target.name]: e.target.value });
+    };
+
     useEffect(() => {
         const fetchUser = async () => {
             const { data } = await supabase
                 .from('users')
-                .select('*')
+                .select(`*, contact_details(*)`)
                 .eq('id', id)
                 .single();
 
             if (data) {
-                setName(data.name);
-                setEmail(data.email);
+                const contact = data.contact_details?.[0] || {};
+
+                setForm({
+                    name: data.name || '',
+                    email: data.email || '',
+                    phone: contact.phone || '',
+                    address: contact.address || '',
+                    city: contact.city || '',
+                    state: contact.state || '',
+                    country: contact.country || ''
+                });
             }
         };
 
         fetchUser();
     }, [id]);
 
-    // Update
+    const validate = () => {
+        let newErrors = {};
+
+        if (!form.name.trim()) newErrors.name = "Required";
+
+        if (!form.email.trim()) {
+            newErrors.email = "Required";
+        } else if (!/\S+@\S+\.\S+/.test(form.email)) {
+            newErrors.email = "Invalid email";
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const updateUser = async () => {
-        await supabase
+        if (!validate()) return;
+
+        setLoading(true);
+
+        // update user
+        const { error: userError } = await supabase
             .from('users')
-            .update({ name, email })
+            .update({ 
+                name: form.name, 
+                email: form.email 
+            })
             .eq('id', id);
+
+        if (userError) {
+            setLoading(false);
+            alert(userError.message);
+            return;
+        }
+
+        // upsert contact details
+        const { error: contactError } = await supabase
+            .from('contact_details')
+            .update({
+                phone: form.phone,
+                address: form.address,
+                city: form.city,
+                state: form.state,
+                country: form.country
+            })
+            .eq('user_id', id) 
+
+        setLoading(false);
+
+        if (contactError) {
+            alert(contactError.message);
+            return;
+        }
 
         navigate('/');
     };
@@ -43,38 +112,103 @@ function EditUser() {
 
             <Helmet>
                 <title>Edit User</title>
-                <meta name="description" content="Add user page" />
             </Helmet>
+
             <h2>Edit User</h2>
 
+            {/* USER */}
             <div className="row mb-3">
                 <div className="col-md-6">
-                    <label htmlFor="">Name</label>
+                    <label>Name</label>
                     <input
+                        name="name"
+                        value={form.name}
+                        placeholder='Name'
+                        onChange={handleChange}
                         className="form-control"
-                        placeholder="Name"
-                        value={name}
-                        required
-                        onChange={(e) => setName(e.target.value)}
                     />
                 </div>
+
                 <div className="col-md-6">
-                    <label htmlFor="">Email</label>
+                    <label>Email</label>
                     <input
+                        name="email"
+                        value={form.email}
+                        placeholder='Email Address'
+                        onChange={handleChange}
                         className="form-control"
-                        placeholder="Email"
-                        value={email}
-                        required
-                        onChange={(e) => setEmail(e.target.value)}
                     />
                 </div>
             </div>
 
+            <hr />
+            <h5>Contact Details</h5>
 
-            <button className="btn btn-primary" onClick={updateUser}>
-                Update
+            {/* CONTACT */}
+            <div className="row mb-3">
+                <div className="col-md-6">
+                    <label>Phone</label>
+                    <input
+                        name="phone"
+                        value={form.phone}
+                        placeholder='Phone Number'
+                        onChange={handleChange}
+                        className="form-control"
+                    />
+                </div>
+
+                <div className="col-md-6">
+                    <label>City</label>
+                    <input
+                        name="city"
+                        value={form.city}
+                        placeholder='City'
+                        onChange={handleChange}
+                        className="form-control"
+                    />
+                </div>
+            </div>
+
+            <div className="row mb-3">
+                <div className="col-md-6">
+                    <label>State</label>
+                    <input
+                        name="state"
+                        value={form.state}
+                        placeholder='State'
+                        onChange={handleChange}
+                        className="form-control"
+                    />
+                </div>
+
+                <div className="col-md-6">
+                    <label>Country</label>
+                    <input
+                        name="country"
+                        value={form.country}
+                        placeholder='Country'
+                        onChange={handleChange}
+                        className="form-control"
+                    />
+                </div>
+            </div>
+
+            <div className="mb-3">
+                <label>Address</label>
+                <textarea
+                    name="address"
+                    value={form.address}
+                    placeholder='Address'
+                    onChange={handleChange}
+                    className="form-control"
+                />
+            </div>
+
+            <button className="btn btn-primary" onClick={updateUser} disabled={loading}>
+                {loading ? "Updating..." : "Update"}
             </button>
-            <button style={{ marginLeft: '10px' }} className="btn btn-secondary" onClick={() => navigate('/')}>
+
+            <button className="btn btn-secondary ms-2" onClick={() => navigate('/')}>
                 Back
             </button>
         </div>

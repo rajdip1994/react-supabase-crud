@@ -4,44 +4,85 @@ import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 
 function AddUser() {
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [errors, setErrors] = useState({});
-
     const navigate = useNavigate();
 
-    // Validation function
+    const [form, setForm] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        address: '',
+        city: '',
+        state: '',
+        country: ''
+    });
+
+    const [errors, setErrors] = useState({});
+    const [loading, setLoading] = useState(false);
+
+    const handleChange = (e) => {
+        setForm({ ...form, [e.target.name]: e.target.value });
+    };
+
     const validate = () => {
         let newErrors = {};
 
-        if (!name.trim()) {
-            newErrors.name = "Name is required";
+        if (!form.name.trim()) newErrors.name = "Name is required";
+
+        if (!form.email.trim()) {
+            newErrors.email = "Email is required";
+        } else if (!/\S+@\S+\.\S+/.test(form.email)) {
+            newErrors.email = "Invalid email";
         }
 
-        if (!email.trim()) {
-            newErrors.email = "Email is required";
-        } else if (!/\S+@\S+\.\S+/.test(email)) {
-            newErrors.email = "Invalid email format";
+        if (!form.phone.trim()) {
+            newErrors.phone = "Phone is required";
+        } else if (!/^[0-9]{10}$/.test(form.phone)) {
+            newErrors.phone = "Enter valid 10 digit number";
         }
 
         setErrors(newErrors);
-
         return Object.keys(newErrors).length === 0;
     };
 
     const addUser = async () => {
-        if (!validate()) return; // stop if invalid
+        if (!validate()) return;
 
-        const { error } = await supabase
+        setLoading(true);
+
+        // 1️⃣ Insert user
+        const { data: userData, error: userError } = await supabase
             .from('users')
-            .insert([{ name, email }]);
+            .insert([{ name: form.name, email: form.email }])
+            .select()
+            .single();
 
-        if (error) {
-            if (error.message.includes('duplicate')) {
+        if (userError) {
+            setLoading(false);
+
+            if (userError.message.includes('duplicate')) {
                 setErrors({ email: "Email already exists" });
             } else {
-                alert(error.message);
+                alert(userError.message);
             }
+            return;
+        }
+
+        // 2️⃣ Insert contact details
+        const { error: contactError } = await supabase
+            .from('contact_details')
+            .insert([{
+                user_id: userData.id,
+                phone: form.phone,
+                address: form.address,
+                city: form.city,
+                state: form.state,
+                country: form.country
+            }]);
+
+        setLoading(false);
+
+        if (contactError) {
+            alert(contactError.message);
             return;
         }
 
@@ -53,38 +94,80 @@ function AddUser() {
 
             <Helmet>
                 <title>Add User</title>
-                <meta name="description" content="Add user page" />
             </Helmet>
 
             <h2>Add User</h2>
 
+            {/* USER INFO */}
             <div className="row mb-3">
                 <div className="col-md-6">
-                    <label htmlFor="">Name</label>
+                    <label>Name</label>
                     <input
-                        className={`form-control mb-1 ${errors.name ? 'is-invalid' : ''}`}
-                        placeholder="Name"
-                        required
-                        onChange={(e) => setName(e.target.value)}
+                        name="name"
+                        className={`form-control ${errors.name && 'is-invalid'}`}
+                        placeholder='Name'
+                        onChange={handleChange}
                     />
-                    {errors.name && <div className="text-danger mb-2">{errors.name}</div>}
+                    {errors.name && <div className="text-danger">{errors.name}</div>}
                 </div>
+
                 <div className="col-md-6">
-                    <label htmlFor="">Email</label>
+                    <label>Email</label>
                     <input
-                        className={`form-control mb-1 ${errors.email ? 'is-invalid' : ''}`}
-                        placeholder="Email"
-                        required
-                        onChange={(e) => setEmail(e.target.value)}
+                        name="email"
+                        className={`form-control ${errors.email && 'is-invalid'}`}
+                        placeholder='Email Address'
+                        onChange={handleChange}
                     />
-                    {errors.email && <div className="text-danger mb-2">{errors.email}</div>}
+                    {errors.email && <div className="text-danger">{errors.email}</div>}
                 </div>
             </div>
 
-            <button className="btn btn-success" onClick={addUser}>
-                Save
+            <hr />
+
+            <h5>Contact Details</h5>
+
+            {/* CONTACT */}
+            <div className="row mb-3">
+                <div className="col-md-6">
+                    <label>Phone</label>
+                    <input
+                        name="phone"
+                        className={`form-control ${errors.phone && 'is-invalid'}`}
+                        placeholder='Phone Number'
+                        onChange={handleChange}
+                    />
+                    {errors.phone && <div className="text-danger">{errors.phone}</div>}
+                </div>
+
+                <div className="col-md-6">
+                    <label>City</label>
+                    <input name="city" className="form-control" placeholder='City' onChange={handleChange} />
+                </div>
+            </div>
+
+            <div className="row mb-3">
+                <div className="col-md-6">
+                    <label>State</label>
+                    <input name="state" className="form-control" placeholder='State' onChange={handleChange} />
+                </div>
+
+                <div className="col-md-6">
+                    <label>Country</label>
+                    <input name="country" className="form-control" placeholder='Country' onChange={handleChange} />
+                </div>
+            </div>
+
+            <div className="mb-3">
+                <label>Address</label>
+                <textarea name="address" className="form-control" placeholder='Address' onChange={handleChange}></textarea>
+            </div>
+
+            <button className="btn btn-success" onClick={addUser} disabled={loading}>
+                {loading ? "Saving..." : "Save"}
             </button>
-            <button style={{ marginLeft: '10px' }} className="btn btn-secondary" onClick={() => navigate('/')}>
+
+            <button className="btn btn-secondary ms-2" onClick={() => navigate('/')}>
                 Back
             </button>
         </div>
