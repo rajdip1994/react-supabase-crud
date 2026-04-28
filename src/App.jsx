@@ -200,7 +200,7 @@ Karan Mehta,karan@gmail.com,9876543219,Street 10,Ahmedabad,GJ,India`;
       </div>
 
       <table className="table table-striped table-bordered">
-        <thead>
+        <thead className="table-dark">
           <tr>
             <th>Name</th>
             <th>Email</th>
