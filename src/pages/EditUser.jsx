@@ -17,11 +17,20 @@ function EditUser() {
         country: ''
     });
 
+    const [preview, setPreview] = useState(null);
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
+    };
+
+    const handleImage = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setForm({ ...form, image: file });
+        setPreview(URL.createObjectURL(file));
     };
 
     useEffect(() => {
@@ -44,11 +53,37 @@ function EditUser() {
                     state: contact.state || '',
                     country: contact.country || ''
                 });
+
+                setPreview(data.image);
             }
         };
 
         fetchUser();
     }, [id]);
+
+    const uploadImage = async () => {
+        if (!form.image) return preview;
+
+        const fileName = `user_${Date.now()}_${form.image.name}`;
+
+        const { data, error } = await supabase.storage
+            .from('user-images')
+            .upload(fileName, form.image);
+
+        if (error) {
+            console.error("UPLOAD ERROR:", error);
+            alert(error.message);
+            return null;
+        }
+
+        console.log("UPLOAD SUCCESS:", data);
+
+        const { data: publicUrlData } = supabase.storage
+            .from('user-images')
+            .getPublicUrl(fileName);
+
+        return publicUrlData.publicUrl;
+    };
 
     const validate = () => {
         let newErrors = {};
@@ -70,18 +105,21 @@ function EditUser() {
 
         setLoading(true);
 
+        const imageUrl = await uploadImage();
+
         // update user
         const { error: userError } = await supabase
             .from('users')
-            .update({ 
-                name: form.name, 
-                email: form.email 
+            .update({
+                name: form.name,
+                email: form.email,
+                image: imageUrl
             })
             .eq('id', id);
 
         if (userError) {
             setLoading(false);
-            alert(userError.message);
+            alert('userError: ' + userError.message);
             return;
         }
 
@@ -95,7 +133,7 @@ function EditUser() {
                 state: form.state,
                 country: form.country
             })
-            .eq('user_id', id) 
+            .eq('user_id', id)
 
         setLoading(false);
 
@@ -104,7 +142,7 @@ function EditUser() {
             return;
         }
 
-        navigate('/');
+        navigate('/users');
     };
 
     return (
@@ -118,7 +156,7 @@ function EditUser() {
 
             {/* USER */}
             <div className="row mb-3">
-                <div className="col-md-6">
+                <div className="col-md-4">
                     <label>Name</label>
                     <input
                         name="name"
@@ -129,7 +167,7 @@ function EditUser() {
                     />
                 </div>
 
-                <div className="col-md-6">
+                <div className="col-md-4">
                     <label>Email</label>
                     <input
                         name="email"
@@ -138,6 +176,14 @@ function EditUser() {
                         onChange={handleChange}
                         className="form-control"
                     />
+                </div>
+                <div className="col-md-4">
+                    <label>Profile Image</label>
+                    <input type="file" className="form-control" accept="image/*" onChange={handleImage} />
+
+                    {preview && (
+                        <img src={preview} width="120" className="mt-2 rounded" />
+                    )}
                 </div>
             </div>
 
@@ -208,7 +254,7 @@ function EditUser() {
                 {loading ? "Updating..." : "Update"}
             </button>
 
-            <button className="btn btn-secondary ms-2" onClick={() => navigate('/')}>
+            <button className="btn btn-secondary ms-2" onClick={() => navigate('/users')}>
                 Back
             </button>
         </div>

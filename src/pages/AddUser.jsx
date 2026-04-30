@@ -13,15 +13,50 @@ function AddUser() {
         address: '',
         city: '',
         state: '',
-        country: ''
+        country: '',
+        image: null
     });
 
+    const [preview, setPreview] = useState(null);
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
+
+    const handleImage = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setForm({ ...form, image: file });
+        setPreview(URL.createObjectURL(file));
+    };
+
+    const uploadImage = async () => {
+        if (!form.image) return null;
+
+        const fileName = `user_${Date.now()}_${form.image.name}`;
+
+        const { error } = await supabase.storage
+            .from('user-images')
+            .upload(fileName, form.image);
+
+        if (error) {
+            console.error("UPLOAD ERROR:", error);
+            alert(error.message);
+            return null;
+        }
+
+        console.log("UPLOAD SUCCESS:", data);
+
+        const { data } = supabase.storage
+            .from('user-images')
+            .getPublicUrl(fileName);
+
+        return data.publicUrl;
+    };
+
 
     const validate = () => {
         let newErrors = {};
@@ -49,10 +84,16 @@ function AddUser() {
 
         setLoading(true);
 
+        const imageUrl = await uploadImage();
+
         // 1️⃣ Insert user
         const { data: userData, error: userError } = await supabase
             .from('users')
-            .insert([{ name: form.name, email: form.email }])
+            .insert([{
+                name: form.name,
+                email: form.email,
+                image: imageUrl
+            }])
             .select()
             .single();
 
@@ -66,6 +107,7 @@ function AddUser() {
             }
             return;
         }
+
 
         // 2️⃣ Insert contact details
         const { error: contactError } = await supabase
@@ -100,7 +142,7 @@ function AddUser() {
 
             {/* USER INFO */}
             <div className="row mb-3">
-                <div className="col-md-6">
+                <div className="col-md-4">
                     <label>Name</label>
                     <input
                         name="name"
@@ -111,7 +153,7 @@ function AddUser() {
                     {errors.name && <div className="text-danger">{errors.name}</div>}
                 </div>
 
-                <div className="col-md-6">
+                <div className="col-md-4">
                     <label>Email</label>
                     <input
                         name="email"
@@ -120,6 +162,15 @@ function AddUser() {
                         onChange={handleChange}
                     />
                     {errors.email && <div className="text-danger">{errors.email}</div>}
+                </div>
+                {/* IMAGE */}
+                <div className="col-md-4">
+                    <label>Profile Image</label>
+                    <input type="file" className="form-control" accept="image/*" onChange={handleImage} />
+
+                    {preview && (
+                        <img src={preview} alt="preview" width="120" className="mt-2 rounded" />
+                    )}
                 </div>
             </div>
 
@@ -167,7 +218,7 @@ function AddUser() {
                 {loading ? "Saving..." : "Save"}
             </button>
 
-            <button className="btn btn-secondary ms-2" onClick={() => navigate('/')}>
+            <button className="btn btn-secondary ms-2" onClick={() => navigate('/users')}>
                 Back
             </button>
         </div>
