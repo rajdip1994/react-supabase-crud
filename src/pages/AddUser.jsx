@@ -38,7 +38,7 @@ function AddUser() {
 
         const fileName = `user_${Date.now()}_${form.image.name}`;
 
-        const { error } = await supabase.storage
+        const { data, error } = await supabase.storage
             .from('user-images')
             .upload(fileName, form.image);
 
@@ -50,11 +50,11 @@ function AddUser() {
 
         console.log("UPLOAD SUCCESS:", data);
 
-        const { data } = supabase.storage
+        const { data: publicUrlData } = supabase.storage
             .from('user-images')
             .getPublicUrl(fileName);
 
-        return data.publicUrl;
+        return publicUrlData.publicUrl;
     };
 
 
