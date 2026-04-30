@@ -128,7 +128,7 @@ function AddUser() {
             return;
         }
 
-        navigate('/');
+        navigate('/users');
     };
 
     return (
